@@ -13,7 +13,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="ko">
-      <body>{children}</body>
+      <body cz-shortcut-listen="true">{children}</body>
     </html>
   );
 }
