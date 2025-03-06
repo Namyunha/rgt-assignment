@@ -15,7 +15,7 @@ import firestore from "@/app/database/firestroe";
 export async function POST(req: Request) {
   const booksRef = collection(firestore, "books");
   const { bookList } = await req.json();
-  for (const { title, author, quantity } of bookList) {
+  for (const { id, title, author, quantity } of bookList) {
     const bookQuery = query(
       booksRef,
       where("title", "==", title),
@@ -32,6 +32,7 @@ export async function POST(req: Request) {
     const numberQuantity = +quantity;
     // 책이 없다면, 새 책 등록
     await addDoc(booksRef, {
+      id,
       title,
       author,
       quantity: numberQuantity,

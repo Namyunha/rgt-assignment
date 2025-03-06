@@ -1,5 +1,11 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { getBook, postBook, deleteBook, updateBook } from "../api/book";
+import {
+  getBook,
+  postBook,
+  deleteBook,
+  updateBook,
+  getBookDetail,
+} from "../api/book";
 import { AxiosError } from "axios";
 
 interface ErrorResponse {
@@ -7,6 +13,7 @@ interface ErrorResponse {
 }
 
 export type bookType = {
+  id: string;
   title: string;
   author: string;
   quantity: number;
@@ -36,6 +43,12 @@ export const useBookQuery = () =>
   useQuery({
     queryKey: ["books"],
     queryFn: getBook,
+  });
+
+export const useBookInfoQuery = (id: string) =>
+  useQuery({
+    queryKey: ["books", { id }],
+    queryFn: () => getBookDetail(id),
   });
 
 export const useUpdateBookMutation = () => {

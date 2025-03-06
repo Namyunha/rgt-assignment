@@ -3,6 +3,7 @@
 import React, { useState } from "react";
 import { useBookQuery, useDeleteBookMutation } from "@/service/query/book"; // 삭제 mutation 추가
 import { useUpdateBookMutation } from "@/service/query/book";
+import Link from "next/link";
 
 export default function BookList() {
   // 상태 관리
@@ -140,7 +141,9 @@ export default function BookList() {
                     className="mr-2"
                   />
                 </td>
-                <td className="px-4 py-2">{book.title}</td>
+                <td className="px-4 py-2">
+                  <Link href={`/book/${book.id}`}> {book.title}</Link>
+                </td>
                 <td className="px-4 py-2">{book.author}</td>
                 <td className="px-4 py-2">
                   {selectedBooks.includes(book.title) ? (

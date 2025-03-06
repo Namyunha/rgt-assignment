@@ -18,6 +18,13 @@ export const getBook = async (): Promise<{ bookList: bookType[] }> => {
   return { bookList: response.data };
 };
 
+export const getBookDetail = async (id: string) => {
+  console.log("post id = ", id);
+  const response = await instance.post(`/bookInfo`, { id });
+  console.log("response = ", response);
+  return response.data;
+};
+
 export const updateBook = async ({
   title,
   quantity,

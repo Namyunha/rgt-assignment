@@ -1,6 +1,7 @@
 import React, { useEffect } from "react";
 import { SubmitHandler, useForm } from "react-hook-form";
 import { useBookMutation } from "@/service/query/book";
+import { v4 as uuidv4 } from "uuid";
 
 type BookFormType = {
   title: string[];
@@ -28,6 +29,7 @@ export default function AddForm({ quantity, setQuantity }: AddFormProps) {
     // 책 제목, 저자, 수량을 모두 필터링하여 리스트 작성
     const bookList = data.title
       .map((title, index) => ({
+        id: uuidv4(),
         title,
         author: data.author[index],
         quantity: data.quantity[index],
