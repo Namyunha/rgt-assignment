@@ -18,11 +18,23 @@ export const getBook = async (): Promise<{ bookList: bookType[] }> => {
   return { bookList: response.data };
 };
 
+export const updateBook = async ({
+  title,
+  quantity,
+}: {
+  title: string;
+  quantity: number;
+}): Promise<{ message: string }> => {
+  const response = await instance.patch("/book", { title, quantity });
+  return response.data;
+};
+
 export const deleteBook = async (
-  bookId: string
+  title: string
 ): Promise<{ message: string }> => {
+  console.log("title = ", title);
   const response = await instance.delete(`/book`, {
-    data: { bookId },
+    data: { title },
   });
   return response.data;
 };

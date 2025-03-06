@@ -7,6 +7,7 @@ import {
   getDocs,
   deleteDoc,
   doc,
+  updateDoc,
 } from "firebase/firestore";
 import firestore from "@/app/database/firestroe";
 
@@ -15,7 +16,6 @@ export async function POST(req: Request) {
   const booksRef = collection(firestore, "books");
   const { bookList } = await req.json();
   for (const { title, author, quantity } of bookList) {
-    // 책이 이미 존재하는지 확인 (title, author가 일치하는지)
     const bookQuery = query(
       booksRef,
       where("title", "==", title),
@@ -29,11 +29,12 @@ export async function POST(req: Request) {
       };
       return new NextResponse(JSON.stringify(response), { status: 409 });
     }
+    const numberQuantity = +quantity;
     // 책이 없다면, 새 책 등록
     await addDoc(booksRef, {
       title,
       author,
-      quantity,
+      quantity: numberQuantity,
     });
   }
 
@@ -51,12 +52,57 @@ export async function GET() {
   return new NextResponse(JSON.stringify(books), { status: 200 });
 }
 
+// 책 수량 업데이트
+export async function PATCH(req: Request) {
+  const { title, quantity } = await req.json();
+  const booksRef = collection(firestore, "books");
+
+  // title을 통해 책 조회
+  const bookQuery = query(booksRef, where("title", "==", title));
+  const getResult = await getDocs(bookQuery);
+
+  // 해당 책이 존재하지 않으면 에러 반환
+  if (getResult.empty) {
+    return new NextResponse(
+      JSON.stringify({
+        message: `"${title}"을 찾을 수 없습니다.`,
+      }),
+      { status: 404 }
+    );
+  }
+
+  // 책이 존재하면 수량 업데이트
+  const bookDoc = getResult.docs[0];
+  const bookRef = doc(firestore, "books", bookDoc.id);
+
+  try {
+    // 기존 수량에 새로운 수량 추가
+    const updatedQuantity = +quantity;
+
+    await updateDoc(bookRef, {
+      quantity: updatedQuantity,
+    });
+
+    const response = {
+      message: "수량을 반영하였습니다.",
+    };
+    return new NextResponse(JSON.stringify(response), { status: 200 });
+  } catch (error) {
+    console.error("수량 업데이트 실패:", error);
+    return new NextResponse(
+      JSON.stringify({ message: "책 수량 업데이트 실패" }),
+      { status: 500 }
+    );
+  }
+}
+
 // 책 삭제하기
 export async function DELETE(req: Request) {
   const { title } = await req.json();
+  console.log("server title = ", title);
   // Firestore에서 해당 책 ID로 책을 조회
   const booksRef = collection(firestore, "books");
-  const bookQuery = query(booksRef, where("id", "==", title));
+  const bookQuery = query(booksRef, where("title", "==", title));
   const getResult = await getDocs(bookQuery);
   // 해당 책이 존재하지 않을 때
   if (getResult.empty) {

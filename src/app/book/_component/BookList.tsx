@@ -2,21 +2,29 @@
 
 import React, { useState } from "react";
 import { useBookQuery, useDeleteBookMutation } from "@/service/query/book"; // 삭제 mutation 추가
+import { useUpdateBookMutation } from "@/service/query/book";
 
 export default function BookList() {
   // 상태 관리
   const [selectedBooks, setSelectedBooks] = useState<string[]>([]); // id를 title로 변경
   const [currentPage, setCurrentPage] = useState(1);
   const [searchTerm, setSearchTerm] = useState(""); // 검색어 상태
-  const [quantityToAdd, setQuantityToAdd] = useState<number>(1); // 추가할 책 수
 
-  // 데이터 가져오기 (useBookQuery는 이미 데이터를 가져오는 hook입니다)
+  const [bookQuantities, setBookQuantities] = useState<{
+    [key: string]: number;
+  }>({});
+
+  console.log("bookQuantities = ", bookQuantities);
+
+  // 불러오기
   const { data, isLoading, error } = useBookQuery();
-  // 삭제 뮤테이션
+  // 업데이트 하기
+  const updateBookMutation = useUpdateBookMutation();
+  // 삭제 하기
   const deleteBookMutation = useDeleteBookMutation();
 
   // 페이지네이션 처리
-  const itemsPerPage = 3; // 한 페이지당 3개
+  const itemsPerPage = 10;
   const totalPages = data?.bookList
     ? Math.ceil(data?.bookList.length / itemsPerPage)
     : 0;
@@ -38,7 +46,7 @@ export default function BookList() {
   });
 
   // 책 선택 처리
-  const toggleSelectBook = (bookTitle: string) => {
+  const selectBook = (bookTitle: string) => {
     setSelectedBooks((prevSelectedBooks) =>
       prevSelectedBooks.includes(bookTitle)
         ? prevSelectedBooks.filter((title) => title !== bookTitle)
@@ -46,25 +54,34 @@ export default function BookList() {
     );
   };
 
-  // 전체 선택 처리
-  const toggleSelectAll = () => {
-    if (selectedBooks.length === filteredBooks.length) {
-      setSelectedBooks([]);
-    } else {
-      setSelectedBooks(filteredBooks.map((book) => book.title)); // title을 사용
+  // 책 단일 수량 변경
+  const handleQuantityChange = (bookTitle: string, quantity: number) => {
+    console.log("quantity = ", quantity);
+    if (quantity < 1) {
+      alert("1이상만 입력 가능합니다.");
+      return;
     }
+    setBookQuantities((prevQuantities) => ({
+      ...prevQuantities,
+      [bookTitle]: quantity,
+    }));
+  };
+  // 책 수정 처리
+  const handleUpdateQuantities = () => {
+    selectedBooks.forEach((bookTitle) => {
+      const quantity = bookQuantities[bookTitle] || 1;
+      console.log("업데이트 ", { title: bookTitle, quantity });
+      updateBookMutation.mutate({ title: bookTitle, quantity });
+    });
+    setSelectedBooks([]);
   };
 
   // 책 삭제 처리
-  const handleDelete = async () => {
-    try {
-      for (const title of selectedBooks) {
-        await deleteBookMutation.mutate(title); // 삭제 함수 호출
-      }
-      setSelectedBooks([]); // 삭제 후 선택된 책 초기화
-    } catch (err) {
-      console.error("삭제 실패:", err);
-    }
+  const handleDelete = () => {
+    selectedBooks.forEach((bookTitle) => {
+      deleteBookMutation.mutate(bookTitle);
+    });
+    setSelectedBooks([]);
   };
 
   // 페이지네이션 버튼 처리
@@ -97,7 +114,13 @@ export default function BookList() {
                 <input
                   type="checkbox"
                   checked={selectedBooks.length === filteredBooks.length}
-                  onChange={toggleSelectAll}
+                  onChange={() =>
+                    setSelectedBooks(
+                      selectedBooks.length === filteredBooks.length
+                        ? []
+                        : filteredBooks.map((book) => book.title)
+                    )
+                  }
                   className="mr-2"
                 />
               </th>
@@ -107,52 +130,55 @@ export default function BookList() {
             </tr>
           </thead>
           <tbody>
-            {filteredBooks.map((book) => (
-              <tr key={book.title} className="border-b hover:bg-gray-100">
+            {filteredBooks.map((book, idx) => (
+              <tr key={idx} className="border-b hover:bg-gray-100">
                 <td className="px-4 py-2">
                   <input
                     type="checkbox"
                     checked={selectedBooks.includes(book.title)}
-                    onChange={() => toggleSelectBook(book.title)}
+                    onChange={() => selectBook(book.title)}
                     className="mr-2"
                   />
                 </td>
                 <td className="px-4 py-2">{book.title}</td>
                 <td className="px-4 py-2">{book.author}</td>
-                <td className="px-4 py-2">{book.quantity}</td>
+                <td className="px-4 py-2">
+                  {selectedBooks.includes(book.title) ? (
+                    <input
+                      type="number"
+                      value={bookQuantities[book.title] || book.quantity}
+                      onChange={(e) =>
+                        handleQuantityChange(book.title, +e.target.value)
+                      }
+                      className="p-2 w-16 border border-gray-300 rounded flex justify-center"
+                    />
+                  ) : (
+                    book.quantity
+                  )}
+                </td>
               </tr>
             ))}
           </tbody>
         </table>
 
-        {/* 삭제 버튼 (선택된 책 삭제) */}
+        {/* 테이블 밖으로 수량 업데이트 버튼 추가 */}
         {selectedBooks.length > 0 && (
-          <div className="flex items-center gap-5 max-w-4/5 mx-auto">
-            <div className="flex gap-3 h-10">
+          <div className="flex justify-center mt-4 gap-5">
+            <div className="flex justify-center mt-4">
               <button
-                onClick={handleDelete}
-                className="w-12 py-2 text-white bg-green-500 rounded hover:bg-green-700 disabled:bg-gray-400"
+                onClick={handleUpdateQuantities} // 선택된 책들의 수량 업데이트
+                className="px-6 py-2 text-white bg-blue-500 rounded hover:bg-blue-700"
               >
-                삭제
-              </button>
-              <button
-                onClick={() =>
-                  alert(
-                    `선택된 ${selectedBooks.length}권의 책을 ${quantityToAdd}권씩 추가합니다.`
-                  )
-                }
-                className="w-12 py-2 text-white bg-blue-500 rounded hover:bg-blue-700 disabled:bg-gray-400"
-              >
-                추가
+                수량 변경
               </button>
             </div>
-            <div className="mt-4 mb-4">
-              <input
-                type="number"
-                value={quantityToAdd}
-                onChange={(e) => setQuantityToAdd(Math.max(1, +e.target.value))}
-                className="p-2 w-1/2 border border-gray-300 rounded"
-              />
+            <div className="flex justify-center mt-4">
+              <button
+                onClick={handleDelete} // 선택된 책들을 한번에 삭제
+                className="px-6 py-2 text-white bg-red-500 rounded hover:bg-red-700"
+              >
+                책 삭제
+              </button>
             </div>
           </div>
         )}
@@ -166,8 +192,6 @@ export default function BookList() {
           >
             이전
           </button>
-
-          {/* 페이지 번호 */}
           {[...Array(totalPages)].map((_, index) => (
             <button
               key={index}
@@ -181,7 +205,6 @@ export default function BookList() {
               {index + 1}
             </button>
           ))}
-
           <button
             onClick={() => handlePageChange(currentPage + 1)}
             disabled={currentPage === totalPages}

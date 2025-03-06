@@ -24,6 +24,10 @@ export default function AddComponent() {
               alert("최대 5개까지 등록 가능합니다.");
               return;
             }
+            if (newQuantity < 1) {
+              alert("1이하로 입력하실 수 없습니다.");
+              return;
+            }
             setQuantity(newQuantity);
           }}
           value={quantity}
